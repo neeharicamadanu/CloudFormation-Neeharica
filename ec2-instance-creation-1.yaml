@@ -1,0 +1,98 @@
+#Ec2 Instance Creation for Bastion Host, WebServer, Application 
+Parameters:
+  #Existing SSH key
+  KeyValue:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: ssh key value
+    Default: ec2creationkey
+
+Resources:
+  #EC2 Instance for the Presentation layer(Web and Bastion Host)
+  WebServerInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      AvailabilityZone: eu-west-1a
+      ImageId: ami-0a1f6cc8163bdcc75
+      InstanceType: t2.micro
+      KeyName: !Ref KeyValue
+      NetworkInterfaces: 
+      - AssociatePublicIpAddress: "true"
+        DeviceIndex: "0"
+        GroupSet: 
+          - !ImportValue WebSshSg
+        SubnetId: 
+          !ImportValue WebPublicSubnetId1
+
+  BastionServerInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      AvailabilityZone: eu-west-1a
+      ImageId: ami-07355fe79b493752d
+      InstanceType: t2.micro
+      KeyName: !Ref KeyValue
+      NetworkInterfaces: 
+      - AssociatePublicIpAddress: "true"
+        DeviceIndex: "0"
+        GroupSet: 
+          - !ImportValue BastionSshSg
+        SubnetId: 
+          !ImportValue WebPublicSubnetId1
+  
+  # EC2 instance for the Logical Layer(and the replica)
+  ApplicationServerInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      AvailabilityZone: eu-west-1a
+      ImageId: ami-0a1f6cc8163bdcc75
+      InstanceType: t2.micro
+      KeyName: !Ref KeyValue
+      NetworkInterfaces: 
+      - AssociatePublicIpAddress: "false"
+        DeviceIndex: "0"
+        GroupSet: 
+          - !ImportValue PhpSshSg
+        SubnetId: 
+          !ImportValue AppPrivateSubnetId1
+  
+  ApplicationServerInstance1:
+    Type: AWS::EC2::Instance
+    Properties:
+      AvailabilityZone: eu-west-1b
+      ImageId: ami-0a1f6cc8163bdcc75
+      InstanceType: t2.micro
+      KeyName: !Ref KeyValue
+      NetworkInterfaces: 
+      - AssociatePublicIpAddress: "false"
+        DeviceIndex: "0"
+        GroupSet: 
+          - !ImportValue PhpSshSg
+        SubnetId: 
+          !ImportValue AppPrivateSubnetId2
+
+
+# Exporting the values for further use
+Outputs:
+    BastionPublicIp:
+      Description: Ec2 Instance Public IP
+      Value: !GetAtt BastionServerInstance.PublicIp
+      Export:
+        Name: BastionPublicIp
+    WebPublicIp:
+      Description: Ec2 Instance Public IP
+      Value: !GetAtt WebServerInstance.PublicIp
+      Export:
+        Name: WebPublicIp
+    PhpInstance1:
+      Description: Php Instance One
+      Value: !Ref ApplicationServerInstance
+      Export: 
+        Name: PhpInstance1
+    PhpInstance2:
+      Description: Php Instance two
+      Value: !Ref ApplicationServerInstance1
+      Export: 
+        Name: PhpInstance2
+    
+        
+        
+        

@@ -1,0 +1,67 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: Creation of Application Load Balancer
+
+Resources:
+#Create an Application Load Balancer
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: PhpLoadBalancer
+      SecurityGroups:
+        - !ImportValue LoadBalanceSg
+      Subnets: 
+        - !ImportValue WebPublicSubnetId1
+        - !ImportValue WebPublicSubnetId2
+  
+  # Target Group
+  ALBTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 10  
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      Matcher:
+        HttpCode: 200,302
+      Name: PhpTarget
+      Port: 80
+      Protocol: HTTP
+      UnhealthyThresholdCount: 5
+      VpcId: !ImportValue VpcInstance
+      TargetType: instance
+      Targets:
+        - Id: !ImportValue PhpInstance1
+          Port: 80
+        - Id: !ImportValue PhpInstance2
+          Port: 80
+
+#Listener at Port 80
+  ElbListener:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+       - Type: forward
+         TargetGroupArn: !Ref ALBTargetGroup
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: '80'
+      Protocol: HTTP
+
+# Exporting the values for further use
+Outputs:
+  ALBTargetGroup:
+    Description: Webserver target group
+    Export:
+      Name: !Sub ${AWS::StackName}-ALBTargetGroup
+    Value: !Ref ALBTargetGroup
+
+  ElbListener:
+    Description: Listener at port 80
+    Export:
+      Name: !Sub ${AWS::StackName}-ElbListener
+    Value: !Ref ElbListener
+
+  ApplicationLoadBalancer:
+    Description: Application Load Balancer 
+    Export:
+      Name: !Sub ${AWS::StackName}-ApplicationLoadBalancer
+    Value: !Ref ApplicationLoadBalancer

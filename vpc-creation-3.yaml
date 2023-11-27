@@ -1,0 +1,332 @@
+Description: >
+  Template for the vpc creation for the FridayHITT program online presence(website - 3 tier architecture)
+  containing 2 public subnets and 4 private subnets. The Web server goes into the public subnet where the
+  users access the webpage - javascript and the logic processing goes to the application server which is
+  private subnet. Finally the DB server in the private subnet. Creating a IGW for the webserver in the 
+  public subnet to access the internet and NAT gateway for the private subnets to access the internet which
+  updates the software and installations. Communications is between the WebServer and Application server.
+  Then from the Application to DB server. 
+
+# VPC and subnets ranges are specified.
+#
+Parameters:
+  # VPC CIDR Range
+  VpcCidrRange:
+    Type: String
+    Default: 10.155.0.0/24
+    Description: CIDR Block for the Virtual Private Cloud
+  
+  #Availability Zone 1, Layer 1 subnet (Presentation Layer)
+  WebPublicSubnetRange1:
+    Type: String
+    Default: 10.155.0.0/28
+    Description: CIDR Block for the Presentation Layer (Public Subnet)
+  WebPublicSubnetAZ1:
+    Type: String
+    Default: eu-west-1a
+    Description: Avalability Zone for the Presentation Layer (Public Subnet)
+
+  #Availability Zone 2, Layer 1 subnet (Presentation Layer)
+  WebPublicSubnetRange2:
+    Type: String
+    Default: 10.155.0.16/28
+    Description: CIDR Block for the Presentation Layer (Public Subnet)
+  WebPublicSubnetAZ2:
+    Type: String
+    Default: eu-west-1b
+    Description: Avalability Zone for the Presentation Layer (Public Subnet)
+  
+  #Availability Zone 1, Layer 2 subnet (Logical Layer)
+  AppPrivateSubnetRange1:
+    Type: String
+    Default: 10.155.0.32/28
+    Description: CIDR Block for the Logical Layer (Private Subnet)
+  AppPrivateSubnetAZ1:
+    Type: String
+    Default: eu-west-1a
+    Description: Avalability Zone for the Logical Layer (Private Subnet)
+
+  #Availability Zone 2, Layer 2 subnet (Logical Layer)
+  AppPrivateSubnetRange2:
+    Type: String
+    Default: 10.155.0.48/28
+    Description: CIDR Block for the Logical Layer (Private Subnet)
+  AppPrivateSubnetAZ2:
+    Type: String
+    Default: eu-west-1b
+    Description: Avalability Zone for the Logical Layer (Private Subnet)
+  
+  #Availability Zone 1, Layer 3 subnet (Database Layer)
+  DbPrivateSubnetRange1:
+    Type: String
+    Default: 10.155.0.64/28
+    Description: CIDR Block for the Database Layer (Private Subnet)
+  DbPrivateSubnetAZ1:
+    Type: String
+    Default: eu-west-1a
+    Description: Avalability Zone for the Database Layer (Private Subnet)
+  
+  #Availability Zone 2, Layer 3 subnet (Database Layer)
+  DbPrivateSubnetRange2:
+    Type: String
+    Default: 10.155.0.80/28
+    Description: CIDR Block for the Database Layer (Private Subnet)
+  DbPrivateSubnetAZ2:
+    Type: String
+    Default: eu-west-1b
+    Description: Avalability Zone for the Database Layer (Private Subnet)
+
+Resources:
+  # VPC Creation
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidrRange
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: !Join ['', [!Ref "AWS::StackName", "-VPC"]] 
+  #Internet Gateway and Attachment
+  WebInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    DependsOn: VPC
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Join ['', [!Ref "AWS::StackName", "-IGW"]]
+  WebAttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref WebInternetGateway
+  
+  # Presentation Layer Public Subnet
+  WebPublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Ref WebPublicSubnetAZ1
+      VpcId: !Ref VPC
+      CidrBlock: !Ref WebPublicSubnetRange1
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Join ['', [!Ref "AWS::StackName", "-Web-Pub-SubNet1"]]
+  
+  # Presentation Layer Public Subnet
+  WebPublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Ref WebPublicSubnetAZ2
+      VpcId: !Ref VPC
+      CidrBlock: !Ref WebPublicSubnetRange2
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Join ['', [!Ref "AWS::StackName", "-Web-Pub-SubNet2"]]
+  
+  # Logical Layer Private Subnet
+  AppPrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Ref AppPrivateSubnetAZ1
+      VpcId: !Ref VPC
+      CidrBlock: !Ref AppPrivateSubnetRange1
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Join ['', [!Ref "AWS::StackName", "-App-Priv-SubNet1"]]
+  
+  # Logical Layer Private Subnet
+  AppPrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Ref AppPrivateSubnetAZ2
+      VpcId: !Ref VPC
+      CidrBlock: !Ref AppPrivateSubnetRange2
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Join ['', [!Ref "AWS::StackName", "-App-Priv-SubNet2"]]
+  
+  # Data Layer Private Subnet
+  DbPrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Ref DbPrivateSubnetAZ1
+      VpcId: !Ref VPC
+      CidrBlock: !Ref DbPrivateSubnetRange1
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Join ['', [!Ref "AWS::StackName", "-Db-Priv-SubNet1"]]
+  
+  # Data Layer Private Subnet
+  DbPrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Ref DbPrivateSubnetAZ2
+      VpcId: !Ref VPC
+      CidrBlock: !Ref DbPrivateSubnetRange2
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Join ['', [!Ref "AWS::StackName", "-Db-Priv-SubNet2"]]
+  
+  # Elastic IP address
+  ElasticIPAddress1:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Join ['', [!Ref "AWS::StackName", "-NGW-EIP1"]]
+  
+  # NAT Gateway with Elastic IP 
+  PriNatGateway1:  
+    Type: AWS::EC2::NatGateway
+    Properties: 
+      AllocationId: 
+        Fn::GetAtt: 
+        - ElasticIPAddress1
+        - AllocationId
+      SubnetId: !Ref WebPublicSubnet1
+      Tags: 
+        - Key: Name
+          Value: !Join ['', [!Ref "AWS::StackName", "-NGW1"]]
+
+  #Presentation Layer Public Route Table 
+  WebPublicRouteTable1:
+    Type: AWS::EC2::RouteTable
+    Properties: 
+      VpcId: !Ref VPC
+      Tags: 
+        - Key: Name
+          Value: !Join ['', [!Ref "AWS::StackName", "-Web-Pub-RTB1"]]
+
+  #Presentation Layer access to Internet - IGW
+  RouteTrafficToIGW1:
+    Type: AWS::EC2::Route
+    DependsOn:
+      - WebInternetGateway
+      - WebAttachGateway
+    Properties: 
+      RouteTableId: !Ref WebPublicRouteTable1
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref WebInternetGateway
+  
+  #Logical Layer Private Route Table
+  AppPrivateRouteTable1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags: 
+        - Key: Name
+          Value: !Join ['', [!Ref "AWS::StackName", "-App-Priv-RTB1"]]
+  
+  #Data Layer Private Route Table
+  DbPrivateRouteTable1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags: 
+        - Key: Name
+          Value: !Join ['', [!Ref "AWS::StackName", "-Db-Priv-RTB1"]]
+
+  #Access to NGW from Logical Layer
+  RouteTrafficToNGW1:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref AppPrivateRouteTable1
+      DestinationCidrBlock:  0.0.0.0/0
+      NatGatewayId: !Ref PriNatGateway1
+  
+  #Access to NGW from Data Layer
+  RouteTrafficToNGW2:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref DbPrivateRouteTable1
+      DestinationCidrBlock:  0.0.0.0/0
+      NatGatewayId: !Ref PriNatGateway1
+  
+  
+  # Route Table Associations
+  WebPublicSubnetRouteTableAssociation1:   
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref WebPublicSubnet1
+      RouteTableId: !Ref WebPublicRouteTable1
+  
+  WebPublicSubnetRouteTableAssociation2:   
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref WebPublicSubnet2
+      RouteTableId: !Ref WebPublicRouteTable1
+
+  AppPrivateSubnetRouteTableAssociation1:   
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref AppPrivateSubnet1
+      RouteTableId: !Ref AppPrivateRouteTable1
+  
+  AppPrivateSubnetRouteTableAssociation2:   
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref AppPrivateSubnet2
+      RouteTableId: !Ref AppPrivateRouteTable1
+  
+  DbPrivateSubnetRouteTableAssociation1:   
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref DbPrivateSubnet1
+      RouteTableId: !Ref DbPrivateRouteTable1
+  
+  DbPrivateSubnetRouteTableAssociation2:   
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref DbPrivateSubnet2
+      RouteTableId: !Ref DbPrivateRouteTable1
+
+# Outputs that defines the variables to be used by other files
+Outputs:
+  VpcInstance:
+    Description: Unique identifier of the VPC 
+    Value: !Ref VPC
+    Export:
+      Name: VpcInstance
+  AttachGateway:
+    Description: VPC attach the gateway
+    Value: !Ref WebAttachGateway
+    Export:
+      Name: AttachGateway
+  WebPublicSubnetId1:
+    Description: Unique identifier of the Public Subnet segment of the VPC
+    Value: !Ref WebPublicSubnet1
+    Export:
+      Name: WebPublicSubnetId1
+  WebPublicSubnetId2:
+    Description: Unique identifier of the Public Subnet segment of the VPC
+    Value: !Ref WebPublicSubnet2
+    Export:
+      Name: WebPublicSubnetId2
+  AppPrivateSubnetId1:
+    Description: Unique identifier of the Private Subnet segment of the VPC
+    Value: !Ref AppPrivateSubnet1
+    Export:
+      Name: AppPrivateSubnetId1
+  AppPrivateSubnetId2:
+    Description: Unique identifier of the Private Subnet segment of the VPC
+    Value: !Ref AppPrivateSubnet2
+    Export:
+      Name: AppPrivateSubnetId2
+  DbPrivateSubnetId1:
+    Description: Unique identifier of the Private Subnet segment of the VPC
+    Value: !Ref DbPrivateSubnet1
+    Export:
+      Name: DbPrivateSubnetId1
+  DbPrivateSubnetId2:
+    Description: Unique identifier of the Private Subnet segment of the VPC
+    Value: !Ref DbPrivateSubnet2
+    Export:
+      Name: DbPrivateSubnetId2

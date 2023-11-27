@@ -1,0 +1,105 @@
+#Parameters for the Public address and IP Anywhere Address are defined
+Parameters: 
+  publicIp: 
+    Type: String
+    Description: Public IP address
+  IpAnywhere:
+    Type: String
+    Description: Anywhere address
+    Default: 0.0.0.0/0
+
+Resources:
+  # Security Groups for the Public Subnet (Bastion Host, Web Server)
+  # Security Groups for the Private Subnet (PhP Server)
+  # Security Group for the LoadBalancer
+
+  LoadBalanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: HTTP access enabled 
+      VpcId: !ImportValue VpcInstance
+      SecurityGroupIngress:
+      - CidrIp: !Ref IpAnywhere
+        FromPort: 80
+        IpProtocol: tcp
+        ToPort: 80
+
+  WebServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Http and SSH is enabled
+      VpcId: !ImportValue VpcInstance
+      SecurityGroupIngress:
+      - CidrIp: !Ref IpAnywhere
+        FromPort: 80
+        IpProtocol: tcp
+        ToPort: 80
+      - CidrIp: !Ref publicIp
+        FromPort: 22
+        IpProtocol: tcp
+        ToPort: 22
+
+  BastionServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: SSH access is enabled
+      VpcId: !ImportValue VpcInstance
+      SecurityGroupIngress:
+      - CidrIp: !Ref publicIp
+        FromPort: 22
+        IpProtocol: tcp
+        ToPort: 22
+  
+  PhpAppServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Http, SSH, ICMP is enabled 
+      VpcId: !ImportValue VpcInstance
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        SourceSecurityGroupId:
+          Fn::GetAtt:
+            - WebServerSecurityGroup
+            - GroupId
+          
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        SourceSecurityGroupId:
+          Fn::GetAtt:
+            - BastionServerSecurityGroup
+            - GroupId
+          
+      - IpProtocol: icmp
+        FromPort: -1
+        ToPort: -1
+        SourceSecurityGroupId:
+          Fn::GetAtt:
+            - WebServerSecurityGroup
+            - GroupId
+          
+  
+
+Outputs:
+  LoadBalanceSg:
+    Description: The SSh Security Group for Load Balancer
+    Value: !Ref LoadBalanceSecurityGroup
+    Export:
+      Name: LoadBalanceSg
+  WebSshSg:
+    Description: The SSh Security Group for Web Instance
+    Value: !Ref WebServerSecurityGroup
+    Export:
+      Name: WebSshSg
+  BastionSshSg:
+    Description: The SSH Security Group for Bastion Host 
+    Value: !Ref BastionServerSecurityGroup
+    Export:
+      Name: BastionSshSg
+  PhpSshSg:
+    Description: The SSH Security Group for Php Server
+    Value: !Ref PhpAppServerSecurityGroup
+    Export:
+      Name: PhpSshSg
